@@ -109,6 +109,10 @@ func (b *Bulb) MacAddress() string {
 	return strings.Replace(fmt.Sprintf("% x", mac[0:6]), " ", ":", -1)
 }
 
+func (b *Bulb) IP() net.Addr {
+	return b.ipAddress
+}
+
 func (b *Bulb) GetPowerState() (bool, error) {
 	msg, err := b.sendAndReceive(makeMessageWithType(_GET_POWER))
 
