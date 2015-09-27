@@ -1,6 +1,6 @@
-# Go LiFX library
+# Go LIFX library
 
-Pure Go Implementation of LiFX protocol. This allow you to lookup bulbs, change color, power and receive info. This code has been developed and maintained by Ven at September 2015.
+Pure Go Implementation of LIFX protocol. This allow you to lookup bulbs, change color, power and receive info. This code has been developed and maintained by Ven at September 2015.
 
 ![gopher](https://github.com/2tvenom/golifx/raw/master/gopher.png)
 
@@ -26,7 +26,7 @@ func main() {
 	//Get label
 	location, _ := bulbs[0].GetLabel()
 
-	fmt.Printf("Label: %s\n", location) //Ven LiFX
+	fmt.Printf("Label: %s\n", location) //Ven LIFX
 
 	//Get power state
 	powerState, _ := bulbs[0].GetPowerState()
@@ -62,7 +62,7 @@ func main() {
 
 ```
 ## Links
- - LiFX protocol specification http://lan.developer.lifx.com/
+ - LIFX protocol specification http://lan.developer.lifx.com/
  - Community https://community.lifx.com/c/developing-with-lifx
 
 ## Licence
