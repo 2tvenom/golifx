@@ -7,6 +7,7 @@ import (
 	"net"
 	"strings"
 	"time"
+	"bytes"
 )
 
 type (
@@ -15,6 +16,16 @@ type (
 		ipAddress       net.Addr
 		port            uint32
 		label           string
+		powerState      bool
+		stateHostInfo   *BulbSignalInfo
+		wifiInfo        *BulbSignalInfo
+		version         *BulbVersion
+		hostFirmware    *BulbFirmware
+		wifiFirmware    *BulbFirmware
+		info *BulbStateInfo
+		location        *BulbLocation
+		group           *BulbLocation
+		color           *HSBK
 	}
 
 	BulbSignalInfo struct {
@@ -109,6 +120,10 @@ func (b *Bulb) MacAddress() string {
 	return strings.Replace(fmt.Sprintf("% x", mac[0:6]), " ", ":", -1)
 }
 
+func (b *Bulb) SetHardwareAddress(address uint64) {
+	b.hardwareAddress = address
+}
+
 func (b *Bulb) IP() net.Addr {
 	return b.ipAddress
 }
@@ -127,7 +142,9 @@ func (b *Bulb) GetPowerState() (bool, error) {
 	var state uint16
 
 	readUint16(msg.payout, &state)
-	return state != 0, nil
+
+	b.powerState = state != 0
+	return b.powerState, nil
 }
 
 func (b *Bulb) SetPowerState(state bool) error {
@@ -138,7 +155,14 @@ func (b *Bulb) SetPowerState(state bool) error {
 		msg.payout = []byte{0xFF, 0xFF}
 	}
 
-	return b.sendWithAcknowledgement(msg, time.Millisecond*500)
+	err := b.sendWithAcknowledgement(msg, time.Millisecond*500)
+
+	if err != nil {
+		return err
+	}
+
+	b.powerState = state
+	return nil
 }
 
 func (b *Bulb) GetLabel() (string, error) {
@@ -152,7 +176,7 @@ func (b *Bulb) GetLabel() (string, error) {
 		return "", incorrectResponseType
 	}
 
-	b.label = strings.TrimSpace(string(msg.payout))
+	b.label = string(bytes.Trim(msg.payout, "\x00"))
 
 	return b.label, nil
 }
@@ -168,7 +192,14 @@ func (b *Bulb) SetLabel(label string) error {
 		msg.payout = append(msg.payout, make([]byte, 32-len(msg.payout))...)
 	}
 
-	return b.sendWithAcknowledgement(msg, time.Millisecond*100)
+	err := b.sendWithAcknowledgement(msg, time.Millisecond*500)
+
+	if err != nil {
+		return err
+	}
+
+	b.label = label
+	return nil
 }
 
 func (b *Bulb) GetStateHostInfo() (*BulbSignalInfo, error) {
@@ -182,7 +213,8 @@ func (b *Bulb) GetStateHostInfo() (*BulbSignalInfo, error) {
 		return nil, incorrectResponseType
 	}
 
-	return parseSignal(msg.payout), nil
+	b.stateHostInfo = parseSignal(msg.payout)
+	return b.stateHostInfo, nil
 }
 
 func (b *Bulb) GetWifiInfo() (*BulbSignalInfo, error) {
@@ -196,7 +228,8 @@ func (b *Bulb) GetWifiInfo() (*BulbSignalInfo, error) {
 		return nil, incorrectResponseType
 	}
 
-	return parseSignal(msg.payout), nil
+	b.wifiInfo = parseSignal(msg.payout)
+	return b.wifiInfo, nil
 }
 
 func parseSignal(payout []byte) *BulbSignalInfo {
@@ -219,13 +252,13 @@ func (b *Bulb) GetVersion() (*BulbVersion, error) {
 		return nil, incorrectResponseType
 	}
 
-	version := &BulbVersion{}
+	b.version = &BulbVersion{}
 
-	readUint32(msg.payout[:4], &version.VendorId)
-	readUint32(msg.payout[4:8], &version.ProductId)
-	readUint32(msg.payout[8:], &version.Version)
+	readUint32(msg.payout[:4], &b.version.VendorId)
+	readUint32(msg.payout[4:8], &b.version.ProductId)
+	readUint32(msg.payout[8:], &b.version.Version)
 
-	return version, nil
+	return b.version, nil
 }
 
 func (b *Bulb) GetHostFirmware() (*BulbFirmware, error) {
@@ -239,7 +272,9 @@ func (b *Bulb) GetHostFirmware() (*BulbFirmware, error) {
 		return nil, incorrectResponseType
 	}
 
-	return parseFirmware(msg.payout), nil
+	b.hostFirmware = parseFirmware(msg.payout)
+
+	return b.hostFirmware, nil
 }
 
 func (b *Bulb) GetWifiFirmware() (*BulbFirmware, error) {
@@ -253,7 +288,9 @@ func (b *Bulb) GetWifiFirmware() (*BulbFirmware, error) {
 		return nil, incorrectResponseType
 	}
 
-	return parseFirmware(msg.payout), nil
+	b.wifiFirmware = parseFirmware(msg.payout)
+
+	return b.wifiFirmware, nil
 }
 
 func parseFirmware(payout []byte) *BulbFirmware {
@@ -276,18 +313,18 @@ func (b *Bulb) GetInfo() (*BulbStateInfo, error) {
 		return nil, incorrectResponseType
 	}
 
-	info := &BulbStateInfo{}
+	b.info = &BulbStateInfo{}
 
 	var i uint64
 
 	readUint64(msg.payout[:8], &i)
-	info.Time = time.Duration(i)
+	b.info.Time = time.Duration(i)
 	readUint64(msg.payout[8:16], &i)
-	info.UpTime = time.Duration(i)
+	b.info.UpTime = time.Duration(i)
 	readUint64(msg.payout[16:], &i)
-	info.Downtime = time.Duration(i)
+	b.info.Downtime = time.Duration(i)
 
-	return info, nil
+	return b.info, nil
 }
 
 func (b *Bulb) GetLocation() (*BulbLocation, error) {
@@ -301,7 +338,9 @@ func (b *Bulb) GetLocation() (*BulbLocation, error) {
 		return nil, incorrectResponseType
 	}
 
-	return parseLocation(msg.payout), nil
+	b.location = parseLocation(msg.payout)
+
+	return b.location, nil
 }
 
 func (b *Bulb) GetGroup() (*BulbLocation, error) {
@@ -315,13 +354,15 @@ func (b *Bulb) GetGroup() (*BulbLocation, error) {
 		return nil, incorrectResponseType
 	}
 
-	return parseLocation(msg.payout), nil
+	b.group = parseLocation(msg.payout)
+
+	return b.group, nil
 }
 
 func parseLocation(payout []byte) *BulbLocation {
 	location := &BulbLocation{}
 	location.Location = payout[:16]
-	location.Label = strings.TrimSpace(string(payout[16:48]))
+	location.Label = string(bytes.Trim(payout[16:48], "\x00"))
 	var i uint64
 	readUint64(payout[48:], &i)
 	location.UpdatedAt = time.Duration(i)
@@ -363,7 +404,9 @@ func (b *Bulb) GetPowerDurationState() (bool, error) {
 	var state uint16
 
 	readUint16(msg.payout, &state)
-	return state != 0, nil
+
+	b.powerState = state != 0
+	return b.powerState, nil
 }
 
 func (b *Bulb) SetPowerDurationState(state bool, duration uint32) error {
@@ -379,7 +422,14 @@ func (b *Bulb) SetPowerDurationState(state bool, duration uint32) error {
 		writeUInt32(msg.payout[2:], duration)
 	}
 
-	return b.sendWithAcknowledgement(msg, time.Millisecond*500)
+	err := b.sendWithAcknowledgement(msg, time.Millisecond*500)
+
+	if err != nil {
+		return err
+	}
+
+	b.powerState = state
+	return nil
 }
 
 func (h *HSBK) Write(data []byte) (n int, err error) {
@@ -413,12 +463,15 @@ func (b *Bulb) GetColorState() (*BulbState, error) {
 		return nil, incorrectResponseType
 	}
 
-	return parseColorState(msg.payout), nil
+	state := parseColorState(msg.payout)
+	b.powerState = state.Power
+	b.label = state.Label
+	b.color = state.Color
+	return state, nil
 }
 
 func (b *Bulb) SetColorState(hsbk *HSBK, duration uint32) error {
 	msg := makeMessageWithType(_SET_COLOR)
-
 	msg.payout = make([]byte, 13)
 
 	hsbk.Read(msg.payout[1:9])
@@ -427,13 +480,20 @@ func (b *Bulb) SetColorState(hsbk *HSBK, duration uint32) error {
 		writeUInt32(msg.payout[9:], duration)
 	}
 
-	return b.sendWithAcknowledgement(msg, time.Millisecond*500)
+	err := b.sendWithAcknowledgement(msg, time.Millisecond*500)
+
+	if err != nil {
+		return err
+	}
+
+	b.color = hsbk
+
+	return nil
 }
 
 func (b *Bulb) SetColorStateWithResponse(hsbk *HSBK, duration uint32) (*BulbState, error) {
 	msg := makeMessageWithType(_SET_COLOR)
 	msg.res_required = true
-
 	msg.payout = make([]byte, 13)
 
 	hsbk.Read(msg.payout[1:9])
@@ -447,7 +507,12 @@ func (b *Bulb) SetColorStateWithResponse(hsbk *HSBK, duration uint32) (*BulbStat
 	if err != nil {
 		return nil, err
 	}
-	return parseColorState(msg.payout), nil
+
+	state := parseColorState(msg.payout)
+	b.powerState = state.Power
+	b.label = state.Label
+	b.color = state.Color
+	return state, nil
 }
 
 func parseColorState(payout []byte) *BulbState {
@@ -460,6 +525,84 @@ func parseColorState(payout []byte) *BulbState {
 	readUint16(payout[10:12], &powerState)
 
 	state.Power = powerState != 0
-	state.Label = strings.TrimSpace(string(payout[12:44]))
+
+	state.Label = string(bytes.Trim(payout[12:44], "\x00"))
 	return state
+}
+
+
+func (b BulbSignalInfo) String() string {
+	return fmt.Sprintf("Signal: %f\nRx: %d\nTx: %d\n", b.Signal, b.Rx, b.Tx)
+}
+
+func (b BulbVersion) String() string {
+	return fmt.Sprintf("Vendor id: %d\nProduct id: %d\nVersion: %d\n", b.VendorId, b.ProductId, b.Version)
+}
+
+func (b BulbFirmware) String() string {
+	return fmt.Sprintf("Build: %d\nVersion: %d\n", b.Build, b.Version)
+}
+
+func (b BulbStateInfo) String() string {
+	return fmt.Sprintf("Time: %s\nUpTime: %s\nDowntime: %s\n", b.Time, b.UpTime, b.Downtime)
+}
+
+func (b BulbLocation) String() string {
+	return fmt.Sprintf("Location: %s\nLabel: %s\nUpdatedAt: %s\n", b.Location, b.Label, b.UpdatedAt)
+}
+
+func (b HSBK) String() string {
+	return fmt.Sprintf("HUE: %d\nSaturation: %d\nBrightness: %d\nKelvin: %d\n", b.Hue, b.Saturation, b.Brightness, b.Kelvin)
+}
+
+func (b BulbState) String() string {
+	return fmt.Sprintf("Color: %sPower: %t\nLabel: %s\n", b.Color, b.Power, b.Label)
+}
+
+func (b Bulb) String() string {
+	str := fmt.Sprintf("MAC: %s\nIP: %s\n", b.MacAddress(), b.IP())
+
+	if b.label != "" {
+		str += fmt.Sprintf("Label: %s\n", b.label)
+	}
+
+	str += fmt.Sprintf("Power state: %t\n", b.powerState)
+
+	if b.stateHostInfo != nil {
+		str += fmt.Sprintf("Host info:\n%s", b.stateHostInfo)
+	}
+
+	if b.wifiInfo != nil {
+		str += fmt.Sprintf("Wi-Fi info:\n%s", b.wifiInfo)
+	}
+
+	if b.version != nil {
+		str += fmt.Sprintf("Version:\n%s", b.version)
+	}
+
+	if b.hostFirmware != nil {
+		str += fmt.Sprintf("Host Firmware:\n%s", b.hostFirmware)
+	}
+
+	if b.wifiFirmware != nil {
+		str += fmt.Sprintf("Wi-Fi Firmware:\n%s", b.wifiFirmware)
+	}
+
+	if b.info != nil {
+		str += fmt.Sprintf("Info:\n%s", b.info)
+	}
+
+	if b.location != nil {
+		str += fmt.Sprintf("Location:\n%s", b.location)
+	}
+
+	if b.group != nil {
+		str += fmt.Sprintf("Group:\n%s", b.group)
+	}
+
+	if b.color != nil {
+		str += fmt.Sprintf("Color:\n%s", b.color)
+	}
+
+	return str
 }
