@@ -65,8 +65,5 @@ func main() {
  - LiFX protocol specification http://lan.developer.lifx.com/
  - Community https://community.lifx.com/c/developing-with-lifx
 
-## Docs
-
-
 ## Licence
 [WTFPL](http://www.wtfpl.net/)
