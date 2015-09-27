@@ -144,7 +144,7 @@ func (b *Bulb) GetLabel() (string, error) {
 		return "", err
 	}
 
-	if msg._type != _GET_LABEL {
+	if msg._type != _STATE_LABEL {
 		return "", incorrectResponseType
 	}
 
@@ -378,7 +378,7 @@ func (b *Bulb) SetPowerDurationState(state bool, duration uint32) error {
 	return b.sendWithAcknowledgement(msg, time.Millisecond*500)
 }
 
-func (h *HSBK) Write(data []byte) (n int, err error)  {
+func (h *HSBK) Write(data []byte) (n int, err error) {
 	readUint16(data[:2], &h.Hue)
 	readUint16(data[2:4], &h.Saturation)
 	readUint16(data[4:6], &h.Brightness)
@@ -386,7 +386,7 @@ func (h *HSBK) Write(data []byte) (n int, err error)  {
 	return 8, nil
 }
 
-func (h *HSBK) Read(p []byte) (n int, err error)  {
+func (h *HSBK) Read(p []byte) (n int, err error) {
 	data := make([]byte, 8)
 	writeUInt16(data[:2], h.Hue)
 	writeUInt16(data[2:4], h.Saturation)
@@ -446,7 +446,7 @@ func (b *Bulb) SetColorStateWithResponse(hsbk *HSBK, duration uint32) (*BulbStat
 	return parseColorState(msg.payout), nil
 }
 
-func parseColorState(payout []byte) *BulbState{
+func parseColorState(payout []byte) *BulbState {
 	hsbk := &HSBK{}
 	hsbk.Write(payout[:8])
 
