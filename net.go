@@ -5,10 +5,9 @@ import (
 	"time"
 )
 
-type (
-	connection struct {
-	}
-)
+type connection struct {
+	bcastAddress net.IP
+}
 
 const (
 	_DEFAULT_MAX_DEAD_LINE = time.Millisecond * 500
@@ -40,7 +39,7 @@ func (c *connection) sendAndReceiveDead(inMessage *message, deadline time.Durati
 	}
 
 	_, err = conn.WriteTo(inMessage.ReadRaw(), &net.UDPAddr{
-		IP:   net.IPv4bcast,
+		IP:   c.bcastAddress,
 		Port: _DEFAULT_PORT,
 	})
 
