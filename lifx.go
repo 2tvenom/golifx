@@ -1,7 +1,9 @@
 package golifx
 
+import "net"
+
 var (
-	conn = &connection{}
+	conn = &connection{bcastAddress: net.IPv4bcast}
 )
 
 const (
@@ -71,4 +73,8 @@ func LookupBulbs() ([]*Bulb, error) {
 	}
 
 	return bulbs, nil
+}
+
+func SetBroadcastAddress(addr net.IP) {
+	conn.bcastAddress = addr
 }
