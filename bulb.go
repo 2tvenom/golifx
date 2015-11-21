@@ -1,13 +1,13 @@
 package golifx
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"strings"
 	"time"
-	"bytes"
 )
 
 type (
@@ -22,7 +22,7 @@ type (
 		version         *BulbVersion
 		hostFirmware    *BulbFirmware
 		wifiFirmware    *BulbFirmware
-		info *BulbStateInfo
+		info            *BulbStateInfo
 		location        *BulbLocation
 		group           *BulbLocation
 		color           *HSBK
@@ -530,7 +530,6 @@ func parseColorState(payout []byte) *BulbState {
 	return state
 }
 
-
 func (b BulbSignalInfo) String() string {
 	return fmt.Sprintf("Signal: %f\nRx: %d\nTx: %d\n", b.Signal, b.Rx, b.Tx)
 }
@@ -544,11 +543,11 @@ func (b BulbFirmware) String() string {
 }
 
 func (b BulbStateInfo) String() string {
-	return fmt.Sprintf("Time: %s\nUpTime: %s\nDowntime: %s\n", b.Time, b.UpTime, b.Downtime)
+	return fmt.Sprintf("Time: %s\nUpTime: %s\nDowntime: %s\n", durationToStrDate(b.Time), b.UpTime, b.Downtime)
 }
 
 func (b BulbLocation) String() string {
-	return fmt.Sprintf("Location: %s\nLabel: %s\nUpdatedAt: %s\n", b.Location, b.Label, b.UpdatedAt)
+	return fmt.Sprintf("Label: %s\nUpdatedAt: %s\n", b.Label, durationToStrDate(b.UpdatedAt))
 }
 
 func (b HSBK) String() string {
@@ -605,4 +604,8 @@ func (b Bulb) String() string {
 	}
 
 	return str
+}
+
+func durationToStrDate(d time.Duration) string {
+	return time.Unix(int64(d.Seconds()), 0).Format("2006-01-02 15:04:05")
 }

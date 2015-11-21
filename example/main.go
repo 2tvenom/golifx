@@ -10,9 +10,9 @@ func main() {
 	//Lookup all bulbs
 	bulbs, _ := golifx.LookupBulbs()
 	//Get label
-	location, _ := bulbs[0].GetLabel()
+	label, _ := bulbs[0].GetLabel()
 
-	fmt.Printf("Label: %s\n", location) //Ven LiFX
+	fmt.Printf("Label: %s\n", label) //Ven LiFX
 
 	//Get power state
 	powerState, _ := bulbs[0].GetPowerState()
