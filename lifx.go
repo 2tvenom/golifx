@@ -44,6 +44,14 @@ const (
 	_POWER_STATE_DURATION = 118
 )
 
+const (
+	WAVEFORM_SAW       uint8 = 0
+	WAVEFORM_SINE      uint8 = 1
+	WAVEFORM_HALF_SINE uint8 = 2
+	WAVEFORM_TRIANGLE  uint8 = 3
+	WAVEFORM_PULSE     uint8 = 4
+)
+
 func LookupBulbs() ([]*Bulb, error) {
 	message := makeMessage()
 	message.tagged = true
