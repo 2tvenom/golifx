@@ -37,6 +37,7 @@ const (
 
 	_GET                  = 101
 	_SET_COLOR            = 102
+	_SET_WAVEFORM         = 103
 	_STATE                = 107
 	_GET_POWER_DURATION   = 116
 	_SET_POWER_DURATION   = 117

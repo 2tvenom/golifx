@@ -515,6 +515,31 @@ func (b *Bulb) SetColorStateWithResponse(hsbk *HSBK, duration uint32) (*BulbStat
 	return state, nil
 }
 
+func (b *Bulb) SetWaveform(transient bool, hsbk *HSBK, period uint32, cycles float32, skewRatio int16, waveform uint8) (*BulbState, error) {
+	msg := makeMessageWithType(_SET_WAVEFORM)
+	msg.res_required = true
+	msg.payout = make([]byte, 21)
+
+	msg.payout[1] = boolToUInt8(transient)
+	hsbk.Read(msg.payout[2:10])
+	writeUInt32(msg.payout[10:], period)
+	writeFloat32(msg.payout[14:], cycles)
+	writeInt16(msg.payout[18:], skewRatio)
+	msg.payout[20] = waveform
+
+	msg, err := b.sendAndReceive(msg)
+
+	if err != nil {
+		return nil, err
+	}
+
+	state := parseColorState(msg.payout)
+	b.powerState = state.Power
+	b.label = state.Label
+	b.color = state.Color
+	return state, nil
+}
+
 func parseColorState(payout []byte) *BulbState {
 	hsbk := &HSBK{}
 	hsbk.Write(payout[:8])

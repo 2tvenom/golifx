@@ -118,6 +118,11 @@ func writeUInt16(buff []byte, data uint16) {
 	buff[1] = byte(data >> 8)
 }
 
+func writeInt16(buff []byte, data int16) {
+	buff[0] = byte(data)
+	buff[1] = byte(data >> 8)
+}
+
 func writeUInt32(buff []byte, data uint32) {
 	for i := 0; i < 4; i++ {
 		buff[i] = byte(data >> uint(i*8))
