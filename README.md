@@ -1,5 +1,7 @@
 # Go LIFX library
 
+[![GoDoc](https://godoc.org/github.com/2tvenom/golifx?status.svg)](https://godoc.org/github.com/2tvenom/golifx)
+
 Pure Go Implementation of LIFX protocol. This allow you to lookup bulbs, change color, power and receive info. This code has been developed and maintained by Ven at September 2015.
 
 ![gopher](https://github.com/2tvenom/golifx/raw/master/gopher.png)
