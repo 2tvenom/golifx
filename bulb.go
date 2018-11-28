@@ -72,8 +72,10 @@ type (
 )
 
 var (
-	noResponse            = errors.New("No acknowledgement response")
-	incorrectResponseType = errors.New("Incorrect response type")
+	// ErrNoResponse is returned when an acknowledgement is not received
+	ErrNoResponse = errors.New("No acknowledgement response")
+	// ErrIncorrectResponseType is returned on receiving an unexpected response
+	ErrIncorrectResponseType = errors.New("Incorrect response type")
 )
 
 func (b *Bulb) sendAndReceive(msg *message) (*message, error) {
@@ -109,7 +111,7 @@ func (b *Bulb) sendWithAcknowledgement(msg *message, deadLine time.Duration) err
 	}
 
 	if msg._type != _ACKNOWLEDGEMENT {
-		return noResponse
+		return ErrNoResponse
 	}
 	return nil
 }
@@ -136,7 +138,7 @@ func (b *Bulb) GetPowerState() (bool, error) {
 	}
 
 	if msg._type != _STATE_POWER {
-		return false, incorrectResponseType
+		return false, ErrIncorrectResponseType
 	}
 
 	var state uint16
@@ -173,7 +175,7 @@ func (b *Bulb) GetLabel() (string, error) {
 	}
 
 	if msg._type != _STATE_LABEL {
-		return "", incorrectResponseType
+		return "", ErrIncorrectResponseType
 	}
 
 	b.label = string(bytes.Trim(msg.payout, "\x00"))
@@ -210,7 +212,7 @@ func (b *Bulb) GetStateHostInfo() (*BulbSignalInfo, error) {
 	}
 
 	if msg._type != _STATE_HOST_INFO {
-		return nil, incorrectResponseType
+		return nil, ErrIncorrectResponseType
 	}
 
 	b.stateHostInfo = parseSignal(msg.payout)
@@ -225,7 +227,7 @@ func (b *Bulb) GetWifiInfo() (*BulbSignalInfo, error) {
 	}
 
 	if msg._type != _STATE_WIFI_INFO {
-		return nil, incorrectResponseType
+		return nil, ErrIncorrectResponseType
 	}
 
 	b.wifiInfo = parseSignal(msg.payout)
@@ -249,7 +251,7 @@ func (b *Bulb) GetVersion() (*BulbVersion, error) {
 	}
 
 	if msg._type != _STATE_VERSION {
-		return nil, incorrectResponseType
+		return nil, ErrIncorrectResponseType
 	}
 
 	b.version = &BulbVersion{}
@@ -269,7 +271,7 @@ func (b *Bulb) GetHostFirmware() (*BulbFirmware, error) {
 	}
 
 	if msg._type != _STATE_HOST_FIRMWARE {
-		return nil, incorrectResponseType
+		return nil, ErrIncorrectResponseType
 	}
 
 	b.hostFirmware = parseFirmware(msg.payout)
@@ -285,7 +287,7 @@ func (b *Bulb) GetWifiFirmware() (*BulbFirmware, error) {
 	}
 
 	if msg._type != _STATE_WIFI_FIRMWARE {
-		return nil, incorrectResponseType
+		return nil, ErrIncorrectResponseType
 	}
 
 	b.wifiFirmware = parseFirmware(msg.payout)
@@ -310,7 +312,7 @@ func (b *Bulb) GetInfo() (*BulbStateInfo, error) {
 	}
 
 	if msg._type != _STATE_INFO {
-		return nil, incorrectResponseType
+		return nil, ErrIncorrectResponseType
 	}
 
 	b.info = &BulbStateInfo{}
@@ -335,7 +337,7 @@ func (b *Bulb) GetLocation() (*BulbLocation, error) {
 	}
 
 	if msg._type != _STATE_LOCATION {
-		return nil, incorrectResponseType
+		return nil, ErrIncorrectResponseType
 	}
 
 	b.location = parseLocation(msg.payout)
@@ -351,7 +353,7 @@ func (b *Bulb) GetGroup() (*BulbLocation, error) {
 	}
 
 	if msg._type != _STATE_GROUP {
-		return nil, incorrectResponseType
+		return nil, ErrIncorrectResponseType
 	}
 
 	b.group = parseLocation(msg.payout)
@@ -370,9 +372,14 @@ func parseLocation(payout []byte) *BulbLocation {
 	return location
 }
 
+var (
+	// ErrEchoMaxRequest is returned when an echo requests data is too long
+	ErrEchoMaxRequest = errors.New("Echo request max length is 64")
+)
+
 func (b *Bulb) EchoRequest(echoRequest []byte) ([]byte, error) {
 	if len(echoRequest) > 64 {
-		return nil, errors.New("Echo request max length is 64")
+		return nil, ErrEchoMaxRequest
 	}
 
 	msg := makeMessageWithType(_ECHO_REQUEST)
@@ -380,7 +387,7 @@ func (b *Bulb) EchoRequest(echoRequest []byte) ([]byte, error) {
 	msg, err := b.sendAndReceive(msg)
 
 	if msg._type != _ECHO_RESPONSE {
-		return nil, incorrectResponseType
+		return nil, ErrIncorrectResponseType
 	}
 
 	if err != nil {
@@ -398,7 +405,7 @@ func (b *Bulb) GetPowerDurationState() (bool, error) {
 	}
 
 	if msg._type != _POWER_STATE_DURATION {
-		return false, incorrectResponseType
+		return false, ErrIncorrectResponseType
 	}
 
 	var state uint16
@@ -460,7 +467,7 @@ func (b *Bulb) GetColorState() (*BulbState, error) {
 	}
 
 	if msg._type != _STATE {
-		return nil, incorrectResponseType
+		return nil, ErrIncorrectResponseType
 	}
 
 	state := parseColorState(msg.payout)
